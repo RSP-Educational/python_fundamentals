@@ -15,7 +15,7 @@ Dieses Repository gibt einen Einstieg in die Python Programmierung.
 ## How To
 
 1. Gehen Sie auf https://colab.research.google.com
-➡️ Datei  ➡️ Notebook öffnen ➡️ GitHub
+➡️ Datei  ➡️ Notebook hochladen ➡️ GitHub
 2. Geben sie folgende URL ein: https://github.com/RSP-Educational/python_fundamentals/blob/main/uebungen.ipynb
 3. Klicken Sie auf `uebungen.ipynb`
 
