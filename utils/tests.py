@@ -135,7 +135,7 @@ def task_3_1():
         if isinstance(days, list) and len(days) == 7 and ["Montag", "Dienstag", "Donnerstag", "Freitag", "Samstag", "Sonntag", "Feiertag"] == days:
             print(f"✅ Die Variable 'days' ist eine Liste mit der korrekten Länge von 7.")
         else:
-            print(f"❌ Die Variable 'days' ist keine Liste mit der korrekten Länge von 7. Aktuelle Länge: {len(days) if isinstance(days, list) else 'N/A'}")
+            print(f"❌ Die Variable 'days' ist keine Liste mit der korrekten Länge von 6. Aktuelle Länge: {len(days) if isinstance(days, list) else 'N/A'}")
 
         first_and_last = _get_attribut_from_notebook('first_and_last')
         if (isinstance(first_and_last, tuple) and len(first_and_last) == 2 and
@@ -156,7 +156,7 @@ def task_3_2():
             print(f"❌ Die Variable 'numbers' ist falsch definiert. Aktueller Wert: {numbers_hat}")
 
         slice1_hat = _get_attribut_from_notebook('slice1')
-        slice1 = numbers[2:8]
+        slice1 = numbers[2:6]
         if slice1_hat == slice1:
             print(f"✅ Die Variable 'slice1' ist korrekt definiert.")
         else:
