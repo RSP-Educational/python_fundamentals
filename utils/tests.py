@@ -81,6 +81,12 @@ def task_2_1():
             print(f"✅ Die Variable 'remainder' hat den korrekten Wert: {remainder}")
         else:
             print(f"❌ Die Variable 'remainder' hat den falschen Wert: {remainder}. Erwartet wurde: {100 % 7}")
+
+        power = _get_attribut_from_notebook('power')
+        if power == 2 ** 3:
+            print(f"✅ Die Variable 'power' hat den korrekten Wert: {power}")
+        else:
+            print(f"❌ Die Variable 'power' hat den falschen Wert: {power}. Erwartet wurde: {2 ** 10}")
     except Exception as e:
         print(f"❌ Fehler: {e}")
 
