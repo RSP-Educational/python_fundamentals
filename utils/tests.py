@@ -590,18 +590,29 @@ def task_10_1():
             b = 0
             result = divide_method(a, b)
         except ZeroDivisionError as e:
-            print(f"✅ 'ZeroDivisionError' ausgelöst.")
+            print(f"✅ 'ZeroDivisionError' ausgelöst für {a}/{b}.")
         else:
-            print(f"❌ 'ZeroDivisionError' nicht ausgelöst für a={a} und b={b}.")
+            print(f"❌ 'ZeroDivisionError' nicht ausgelöst für {a}/{b}.")
 
         try:
             a = 'Zeichenkette'
             b = True
             result = divide_method(a, b)
         except ValueError as e:
-            print(f"✅ 'ValueError' ausgelöst.")
+            print(f"✅ 'ValueError' ausgelöst für {a} ({type(a)}) und {b} ({type(b)}).")
         else:
             print(f"❌ 'ValueError' nicht ausgelöst für a={a} ({type(a)}) und b={b} ({type(b)}).")
+
+        try:
+            a = 10
+            b = 2
+            result = divide_method(a, b)
+            if result == 5:
+                print(f"✅ Division korrekt durchgeführt: {a} / {b} = {result}.")
+            else:
+                print(f"❌ Falsches Ergebnis für Division: {a} / {b} = {result}. Erwartet wurde 5.")
+        except Exception as e:
+            print(f"❌ Unerwarteter Fehler bei Division: {e}")
     
     except Exception as e:
         print(f"❌ Fehler: {e}")
@@ -645,7 +656,7 @@ def task_11_2():
         for i, result in enumerate(results):
             i_hat = int(result[0])
             if i != i_hat:
-                print(f"❌ Zeile {i} falsch formatiert. Erwartet {i} an 1. Stelle. Tatsächöich: {i_hat}")
+                print(f"❌ Zeile {i} falsch formatiert. Erwartet {i} an 1. Stelle. Tatsächlich: {i_hat}")
             else:
                 print(f"✅ Zeile {i} korrekt formatiert.")
     except Exception as e:
@@ -744,14 +755,11 @@ def task_13_1():
 
         array1 = np.arange(20)
         
-        print("t1")
         if np.equal(array1, array1_hat).all():
             print(f"✅ 'array1' korrekt.")
         else:
             print(f" 'array1' fehlerhaft.\nSoll: {array1}\nIst: {array1_hat}")
 
-        print('t: array1', array1)
-        print('t: array2_hat.shape', array2_hat.shape)
         if array2_hat.shape[0] == 4 and array2_hat.shape[1] == 5:
             print(f"✅ 'array2' hat den richtigen shape.")
         else:
@@ -786,7 +794,7 @@ def task_13_2():
         array1 = _get_attribut_from_notebook('array1')
         array2 = _get_attribut_from_notebook('array2')
         array3 = array1 + array2
-        array4 = array1 * array2
+        array4 = np.dot(array1, array2)
         det = np.linalg.det(array1)
 
         array3_hat = _get_attribut_from_notebook('array3')
@@ -860,7 +868,7 @@ def task_14_1():
         else:
             print(f"❌ Produkt falsch berechnet.\nSoll: {tensor4}\nIst: {tensor4_hat}")
 
-        tensor5 = torch.mm(tensor1, tensor2)
+        tensor5 = tensor1 @ tensor2
         if torch.all(tensor5 == tensor5_hat):
             print(f"✅ Matrix-Multiplikation korrekt durchgeführt.")
         else:
