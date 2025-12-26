@@ -776,17 +776,17 @@ def task_13_2():
         if np.equal(array3, array3_hat).all():
             print(f"✅ Elementweise Summe korrekt berechnet.")
         else:
-            print(f"❌ Elementweise Summe falsch berechnet.\Soll: {array3}\nIst: {array3_hat}")
+            print(f"❌ Elementweise Summe falsch berechnet.\nSoll: {array3}\nIst: {array3_hat}")
 
         if np.equal(array4, array4_hat).all():
             print(f"✅ Elementweises Produkt korrekt berechnet.")
         else:
-            print(f"❌ Elementweises Produkt falsch berechnet.\Soll: {array4}\nIst: {array4_hat}")
+            print(f"❌ Elementweises Produkt falsch berechnet.\nSoll: {array4}\nIst: {array4_hat}")
 
         if det == det_hat:
             print(f"✅ Determinante korrekt berechnet.")
         else:
-            print/f"❌ Determinante falsch berechnet.\Soll: {det}\nIst: {det_hat}"
+            print(f"❌ Determinante falsch berechnet.\nSoll: {det}\nIst: {det_hat}")
 
     except Exception as e:
         print(f"❌ Fehler: {e}")
@@ -832,19 +832,19 @@ def task_14_1():
         if torch.all(tensor3 == tensor3_hat):
             print(f"✅ Summe korrekt berechnet.")
         else:
-            print(f"❌ Summe falsch berechnet.\Soll: {tensor3}\nIst: {tensor3_hat}")
+            print(f"❌ Summe falsch berechnet.\nSoll: {tensor3}\nIst: {tensor3_hat}")
 
         tensor4 = tensor1 * tensor2
         if torch.all(tensor4 == tensor4_hat):
             print(f"✅ Produkt korrekt berechnet.")
         else:
-            print(f"❌ Produkt falsch berechnet.\Soll: {tensor4}\nIst: {tensor4_hat}")
+            print(f"❌ Produkt falsch berechnet.\nSoll: {tensor4}\nIst: {tensor4_hat}")
 
         tensor5 = torch.mm(tensor1, tensor2)
         if torch.all(tensor5 == tensor5_hat):
             print(f"✅ Matrix-Multiplikation korrekt durchgeführt.")
         else:
-            print(f"❌ Matrix-Multiplikation falsch durchgeführt.\Soll: {tensor5}\nIst: {tensor5_hat}")
+            print(f"❌ Matrix-Multiplikation falsch durchgeführt.\nSoll: {tensor5}\nIst: {tensor5_hat}")
     except Exception as e:
         print(f"❌ Fehler: {e}")
 
