@@ -544,7 +544,21 @@ def task_9_2():
         else:
             print(f"✅ 'ElectricCar' Klasse gefunden.")
 
-        electricCar = class_ElectricCar('Polestar', '5', 650)
+        sig = inspect.signature(class_ElectricCar.__init__)
+        args = {}
+        for name, param in sig.parameters.items():
+            if name == 'self':
+                continue
+            if name == 'brand':
+                args[name] = 'Polestar'
+            if name == 'model':
+                args[name] = '5'
+            if name == 'battery_capacity':
+                args[name] = 650
+            if name == 'mileage':
+                args[name] = 12_536
+            pass
+        electricCar = class_ElectricCar(**args)
         if not hasattr(electricCar, 'brand'):
             print(f"❌ Die Klasse 'ElectricCar' hat kein Attribut 'brand'.")
         else:
