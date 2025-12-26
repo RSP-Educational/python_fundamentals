@@ -58,7 +58,7 @@ def task_1_2():
 
 def task_2_1():
     try:
-        result_sum = _get_attribut_from_notebook('sum')
+        result_sum = _get_attribut_from_notebook('result_sum')
         if result_sum == 42 + 17:
             print(f"✅ Die Variable 'result_sum' hat den korrekten Wert: {result_sum}")
         else:
