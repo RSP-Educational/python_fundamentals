@@ -135,14 +135,14 @@ def task_3_1():
         if isinstance(days, list) and len(days) == 7 and ["Montag", "Dienstag", "Donnerstag", "Freitag", "Samstag", "Sonntag", "Feiertag"] == days:
             print(f"✅ Die Variable 'days' ist eine Liste mit der korrekten Länge von 7.")
         else:
-            print(f"❌ Die Variable 'days' ist keine Liste mit der korrekten Länge von 6. Aktuelle Länge: {len(days) if isinstance(days, list) else 'N/A'}")
+            print(f"❌ Die Variable 'days' ist keine Liste mit der korrekten Länge von 7. Aktuelle Länge: {len(days) if isinstance(days, list) else 'N/A'}")
 
         first_and_last = _get_attribut_from_notebook('first_and_last')
-        if (isinstance(first_and_last, tuple) and len(first_and_last) == 2 and
+        if (isinstance(first_and_last, list) and len(first_and_last) == 2 and
             first_and_last[0] == "Montag" and first_and_last[1] == "Sonntag"):
-            print(f"✅ Die Variable 'first_and_last' ist ein Tupel mit den korrekten Werten: {first_and_last}")
+            print(f"✅ Die Variable 'first_and_last' ist eine Liste mit den korrekten Werten: {first_and_last}")
         else:
-            print(f"❌ Die Variable 'first_and_last' ist kein Tupel mit den korrekten Werten. Aktueller Wert: {first_and_last}")
+            print(f"❌ Die Variable 'first_and_last' ist keine Liste mit den korrekten Werten. Aktueller Wert: {first_and_last}")
     except Exception as e:
         print(f"❌ Fehler: {e}")
 
@@ -276,12 +276,12 @@ def task_5_2():
         else:
             print(f"✅ Das Set 'all_students' wurde korrekt definiert.")
 
-        students_in_both_coureses = course_a & course_b
-        students_in_both_coureses_hat = _get_attribut_from_notebook("students_in_both_coureses")
-        if students_in_both_coureses != students_in_both_coureses_hat:
-            print(f"❌ Das Set 'students_in_both_coureses' hat den falschen Inhalt. Erwartet wurde: {students_in_both_coureses}, aber erhalten: {students_in_both_coureses_hat}")
+        students_in_both_courses = course_a & course_b
+        students_in_both_courses_hat = _get_attribut_from_notebook("students_in_both_courses")
+        if students_in_both_courses != students_in_both_courses_hat:
+            print(f"❌ Das Set 'students_in_both_courses' hat den falschen Inhalt. Erwartet wurde: {students_in_both_courses}, aber erhalten: {students_in_both_courses_hat}")
         else:
-            print(f"✅ Das Set 'students_in_both_coureses' wurde korrekt definiert.")
+            print(f"✅ Das Set 'students_in_both_courses' wurde korrekt definiert.")
 
         students_just_in_a_hat = _get_attribut_from_notebook("students_just_in_a")
         students_just_in_a = course_a - course_b
@@ -315,7 +315,7 @@ def task_6_1():
 
 def task_6_2():
     try:
-        results = [0, 1, 2, 3, 4, 6, 7]
+        results = [1, 2, 3, 4, 6, 7]
         results_hat = _get_attribut_from_notebook("results")
         if results != results_hat:
             print(f"❌ Die Variable 'results' hat den falschen Wert. Erwartet wurde: {results}, aber erhalten: {results_hat}")
