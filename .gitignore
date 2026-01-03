@@ -25,6 +25,8 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+*certificate*.png
+.DS_Store
 
 tests.py
 notizen.txt

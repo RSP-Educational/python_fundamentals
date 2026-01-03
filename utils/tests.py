@@ -1,7 +1,227 @@
 import __main__
 from typing import Tuple
+import numpy as np
+import cv2 as cv
+import inspect
+import sys
 
-results = {}
+# mail
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+from email.mime.image import MIMEImage
+
+validation_results = {}
+
+def __generate_certificate__():
+    def get_sorted_functions():
+        functions_replaced = []
+        for f in inspect.getmembers(sys.modules[__name__], inspect.isfunction):
+            if not f[0].startswith('task_'):
+                continue
+
+            i0 = int(f[0].split('_')[1])
+            i1 = int(f[0].split('_')[2])
+
+            replaced_name = f"task_{i0:02d}_{i1:02d}"
+            functions_replaced.append(replaced_name)
+        functions = []
+        for f in sorted(functions_replaced):
+            i0 = int(f.split('_')[1])
+            i1 = int(f.split('_')[2])
+            functions.append(f"task_{i0}_{i1}")
+        return functions
+    
+    def write_line(img, text, scale = 1.0, thickness = 1, margin = 5, color = (0, 0, 0), horizontal_align = "left"):
+        text_size, _ = cv.getTextSize(text, cv.FONT_HERSHEY_SIMPLEX, scale, thickness)
+        
+        img_line = np.full((text_size[1] + 2 * margin, img.shape[1], 4), 255, dtype=np.uint8)
+        if horizontal_align == "left":
+            text_x = 0
+        elif horizontal_align == "center":
+            text_x = (img_line.shape[1] - text_size[0]) // 2
+        elif horizontal_align == "right":
+            text_x = img_line.shape[1] - text_size[0]
+        else:
+            raise ValueError("Ungültige horizontale Ausrichtung")
+        
+        text_y = text_size[1] + (margin // 2)
+        cv.putText(img_line, text, (text_x, text_y), cv.FONT_HERSHEY_SIMPLEX, scale, color, thickness)
+        img = np.vstack((img, img_line))
+        return img
+    
+    def add_text(img, text:str, pos_y:int, pos_x:int = None, scale=1.0, color=(0,0,0), thickness=1, horizontal_align="left"):
+        (text_w, text_h), baseline = cv.getTextSize(text, cv.FONT_HERSHEY_SIMPLEX, scale, thickness)
+        
+        if horizontal_align == "left":
+            text_x = 0
+        elif horizontal_align == "center":
+            text_x = (img.shape[1] - text_w) // 2
+        elif horizontal_align == "right":
+            text_x = img.shape[1] - text_w
+        elif horizontal_align == "justify":
+            text_x = pos_x if pos_x is not None else 0
+        else:
+            raise ValueError("Ungültige horizontale Ausrichtung")
+        
+        text_y = pos_y + text_h + baseline
+        cv.putText(img, text, (text_x, text_y), cv.FONT_HERSHEY_SIMPLEX, scale, color, thickness)
+        return text_y
+
+    def get_processed_tasks(task_functions, results):
+        processed_tasks, tasks = 0, 0
+        for task in task_functions:
+            tasks += 1
+            if task in results:
+                processed_tasks += 1
+        return processed_tasks, tasks
+
+    def add_image_weighted(img1, img2, alpha=0.5, position = (0, 0)):
+        x, y = position
+        h, w = img2.shape[0], img2.shape[1]
+
+        alpha_mask = img2[:, :, 3] / 255.0
+        for c in range(0, 3):
+            if x + w > img1.shape[1] or y + h > img1.shape[0]:
+                break
+            img1[y:y+h, x:x+w, c] = (alpha_mask * img2[:, :, c] * alpha +
+                                     (1 - alpha_mask * alpha) * img1[y:y+h, x:x+w, c])
+        return img1
+        pass
+
+    # results['task_1_1'] = (2,2)
+    # results['task_1_2'] = (4,5)
+    # results['task_8_3'] = (5,5)
+
+    COLOR_DEFAULT = (0, 0, 0)
+    COLOR_BAD = (0, 0, 180)
+    COLOR_GOOD = (0, 150, 0)
+    COLOR_PENDING = (180, 180, 180)
+
+    h1_scale = 4
+    h2_scale = 2.0
+    h3_scale = 1.1
+
+    task_functions = get_sorted_functions()
+
+    img = np.full((2*1080, 2*2000, 4), 255, dtype=np.uint8)
+    margin_big = 40
+    margin_small = 30
+
+    # DHSN Logo hinzufügen
+    overlay = cv.imread('image/DHSN_Logo.svg.png', cv.IMREAD_UNCHANGED)
+    f = min(img.shape[1] / overlay.shape[1], img.shape[0] / overlay.shape[0]) * 0.9
+    overlay_resized = cv.resize(overlay, (0, 0), fx=f, fy=f)
+    add_image_weighted(img, overlay_resized, alpha=0.05, position=(img.shape[1]//2-overlay_resized.shape[1]//2, img.shape[0]//2-overlay_resized.shape[0]//2))
+
+    # Certificate
+    posY = 100
+    thickness = 15
+    posY = add_text(img, "Certificate", pos_y=posY, scale=h1_scale, thickness=thickness, horizontal_align="center") + margin_big
+    posY = add_text(img, "Python Fundamentals", pos_y=posY, scale=h1_scale, thickness=thickness, horizontal_align="center") + margin_big
+    
+    # Processed tasks
+    thickness = 5
+    scale = 2.
+    posY += 50
+    task_functions = get_sorted_functions()
+
+    logo_size = (40, 40)
+    img_success = cv.imread('image/success.png', cv.IMREAD_UNCHANGED)
+    img_success = cv.resize(img_success, logo_size)
+    img_failed = cv.imread('image/failed.png', cv.IMREAD_UNCHANGED)
+    img_failed = cv.resize(img_failed, logo_size)
+    img_loading = cv.imread('image/loading.png', cv.IMREAD_UNCHANGED)
+    img_loading = cv.resize(img_loading, logo_size)
+
+    posY += 50
+    rows = 12
+    cols = 3
+    scale = 1.1
+    mx = 10
+    thickness = 2
+    margin = 100
+    r_h = 80
+    c_w = ((img.shape[1] - 2*margin) // cols)
+    correct, total = 0, 0
+    for i, task_fn in enumerate(task_functions):
+        r = i % rows
+        c = i // rows
+
+        pX = margin + c * c_w
+        pY = posY + r * r_h
+
+        cv.line(img, (margin + c * c_w, pY+r_h-2*mx), (margin + c*c_w+c_w-4*mx, pY+r_h-2*mx), (200, 200, 200), 2)
+
+        # get function documentation
+        doc = sys.modules[__name__].__dict__[task_fn].__doc__
+        i0 = int(task_fn.split('_')[1])
+        i1 = int(task_fn.split('_')[2])
+        doc = f"{i0}.{i1} {doc}"
+        if task_fn in validation_results:
+            checks_correct, checks = validation_results[task_fn]
+            if checks_correct == checks:
+                color = COLOR_GOOD
+                logo = img_success
+                correct += checks_correct
+            #     add_image_weighted(img, img_success, alpha=1.0, position=(pX, pY))
+            #     add_text(img, f"{doc}: {checks_correct/checks*100:.0f}%", pos_y=pY, pos_x=pX+logo_size[1]+mx, scale=scale, thickness=thickness, horizontal_align="justify", color=COLOR_GOOD)
+            else:
+                color = COLOR_BAD
+                logo = img_failed
+    #         add_image_weighted(img, img_failed, alpha=1.0, position=(pX, pY))
+    #         add_text(img, f"{doc}: {checks_correct/checks*100:.0f}%", pos_y=pY, pos_x=pX+logo_size[1]+mx, scale=scale, thickness=thickness, horizontal_align="justify", color=COLOR_BAD)
+        else:
+            checks_correct, checks = 0, 1
+            color = COLOR_PENDING
+            logo = img_loading
+        total += checks
+        add_image_weighted(img, logo, alpha=1.0, position=(pX, pY))
+        add_text(img, f"{doc}", pos_y=pY, pos_x=pX+logo_size[1]+mx, scale=h3_scale, thickness=thickness, horizontal_align="justify", color=color)
+        
+        score = checks_correct / checks * 100 if checks > 0 else 0
+        score_str = f"{score:.0f}%"
+        (w, h), _ = cv.getTextSize(score_str, cv.FONT_HERSHEY_SIMPLEX, scale, thickness)
+        pX += c_w - w - 4*mx
+        add_text(img, f"{score:.0f}%", pos_y=pY, pos_x=pX, scale=scale, thickness=thickness, horizontal_align="justify", color=color)
+        pass
+
+    posY += rows * 80 + margin_big
+    score = correct / total * 100 if total > 0 else 0
+    passed = score >= 80.0
+    color = COLOR_GOOD if passed else COLOR_BAD
+    posY = add_text(img, f"Final Score: {correct} / {total} Tests passed ({score:.0f}%)", pos_y=posY, scale=h2_scale, thickness=4, horizontal_align="center", color=color) + margin_big
+    last_name = validation_results.get('last_name', None)
+    first_name = validation_results.get('first_name', None)
+    name = f"{first_name} {last_name}" if first_name is not None and last_name is not None else "Student"
+    
+    if passed:
+        posY = add_text(img, f"Congratulations, {name}!", pos_y=posY, scale=h3_scale, thickness=3, horizontal_align="center", color=COLOR_GOOD) + margin_small
+        posY = add_text(img, f"You have successfully completed the Python Fundamentals course.", pos_y=posY, scale=h3_scale, thickness=2, horizontal_align="center", color=COLOR_GOOD) + margin_small
+    else:
+        posY = add_text(img, f"Dear {name},", pos_y=posY, scale=h3_scale, thickness=3, horizontal_align="center", color=COLOR_BAD) + margin_small
+        posY = add_text(img, f"Unfortunately, you did not pass the Python Fundamentals course.", pos_y=posY, scale=h3_scale, thickness=2, horizontal_align="center", color=COLOR_BAD) + margin_small
+        posY = add_text(img, f"Please try again to improve your score to 80%.", pos_y=posY, scale=h3_scale, thickness=2, horizontal_align="center", color=COLOR_BAD) + margin_small
+
+    add_text(img, f"Issued by Robert Schulz, DHSN - Duale Hochschule Sachsen", pos_y=posY, scale=h3_scale, thickness=2, horizontal_align="center")
+
+    overlay_resized = cv.resize(overlay, (0, 0), fx=0.3, fy=0.3)
+    add_image_weighted(img, overlay_resized, alpha=1.,
+                       position=(img.shape[1]//2-overlay_resized.shape[1]//2, img.shape[0]-overlay_resized.shape[0]-margin_big))
+    
+    import datetime as dt
+    date_str = dt.datetime.now().strftime("%d.%m.%Y")
+    
+    fname = f"certificate_python_fundamentals_{last_name}_{first_name}.png"
+    cv.imwrite(fname, img)
+    cv.imshow('Zertifikat', img)
+    print(f"🏅 Dein Zertifikat wurde als '{fname}' gespeichert. Du kannst es jetzt herunterladen.")
+
+    
+    cv.waitKey(20_000)
+    cv.destroyAllWindows()
 
 def _get_attribut_from_notebook(var_name):
     """Hilfsfunktion, um eine Variable aus dem Hauptmodul (Notebook) zu holen."""
@@ -11,125 +231,212 @@ def _get_attribut_from_notebook(var_name):
         raise AttributeError(f"Attribut '{var_name}' nicht im Notebook gefunden.")
 
 def task_1_1():
+    """Variables and Datatypes"""
+    def validate_email(mail:str):
+        import re
+        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        return re.match(pattern, mail) is not None
+
     try:
-        name = _get_attribut_from_notebook('name')
-        out_str = f'### {name}, herzlich willkommen zum Einführungskurs Python! ###'
+        first_name = _get_attribut_from_notebook('first_name')
+        last_name = _get_attribut_from_notebook('last_name')
+
+
+        out_str = f'### {first_name} {last_name}, herzlich willkommen zum Einführungskurs Python! ###'
         print('\033[1m' + '#'*len(out_str) + '\033[0m')
         print('\033[1m' + out_str + '\033[0m')
         print('\033[1m' + '#'*len(out_str)+ '\033[0m')
 
+        checks = 0
+        checks_correct = 0
+
         age = _get_attribut_from_notebook('age')
         if isinstance(age, int):
             print(f"✅ Die Variable 'age' ist vom Typ int mit dem Wert: {age}")
+            checks_correct += 1
         else:
             print(f"❌ Die Variable 'age' ist nicht vom Typ int, sondern vom Typ {type(age)}")
+        checks += 1
 
         size = _get_attribut_from_notebook('size')
         if isinstance(size, float):
             print(f"✅ Die Variable 'size' ist vom Typ float mit dem Wert: {size}")
+            checks_correct += 1
         else:
             print(f"❌ Die Variable 'size' ist nicht vom Typ float, sondern vom Typ {type(size)}")
+        checks += 1
         
-        name = _get_attribut_from_notebook('name')
-        if isinstance(name, str):
-            print(f"✅ Die Variable 'name' ist vom Typ str mit dem Wert: {name}")
+        
+        if isinstance(first_name, str):
+            print(f"✅ Die Variable 'first_name' ist vom Typ str mit dem Wert: {first_name}")
+            validation_results['first_name'] = first_name
+            checks_correct += 1
         else:
-            print(f"❌ Die Variable 'name' ist nicht vom Typ str, sondern vom Typ {type(name)}")
+            print(f"❌ Die Variable 'first_name' ist nicht vom Typ str, sondern vom Typ {type(first_name)}")
+        checks += 1
+
+        if isinstance(last_name, str):
+            print(f"✅ Die Variable 'last_name' ist vom Typ str mit dem Wert: {last_name}")
+            validation_results['last_name'] = last_name
+            checks_correct += 1
+        else:
+            print(f"❌ Die Variable 'last_name' ist nicht vom Typ str, sondern vom Typ {type(last_name)}")
+        checks += 1
+
+        mail = _get_attribut_from_notebook('mail')
+        if isinstance(mail, str):
+            print(f"✅ Die Variable 'mail' ist vom Typ str mit dem Wert: {mail}")
+            validation_results['mail'] = mail
+            checks_correct += 1
+        else:
+            print(f"❌ Die Variable 'mail' ist nicht vom Typ str, sondern vom Typ {type(mail)}")
+        checks += 1
+
+        if validate_email(mail):
+            print(f"✅ Die Variable 'mail' enthält eine gültige E-Mail-Adresse: {mail}")
+            checks_correct += 1
+        else:
+            print(f"❌ Die Variable 'mail' enthält keine gültige E-Mail-Adresse: {mail}")
+        checks += 1
 
         is_student = _get_attribut_from_notebook('is_student')
         if isinstance(is_student, bool):
             print(f"✅ Die Variable 'is_student' ist vom Typ bool mit dem Wert: {is_student}")
+            checks_correct += 1
         else:
             print(f"❌ Die Variable 'is_student' ist nicht vom Typ bool, sondern vom Typ {type(is_student)}")
+        checks += 1
+
+        validation_results['task_1_1'] = (checks_correct, checks)
     except Exception as e:
         print(f"❌ Fehler: {e}")
 
 def task_1_2():
+    """Strings"""
+    checks = 0
+    checks_correct = 0
     try:
         multiline_str = _get_attribut_from_notebook('multiline_str')
         if isinstance(multiline_str, str) and '\n' in multiline_str:
             print("✅ Die Variable 'multiline_str' ist ein mehrzeiliger String.")
+            checks_correct += 1
         elif not isinstance(multiline_str, str):
             print("❌ Die Variable 'multiline_str' ist kein String.")
         elif '\n' not in multiline_str:
             print("❌ Die Variable 'multiline_str' ist nicht mehrzeilig. Bitte füge einen Zeilenumbruch ein")
+        checks += 1
     except Exception as e:
         print(f"❌ Fehler: {e}")
+    validation_results['task_1_2'] = (checks_correct, checks)
 
 def task_2_1():
+    """Operators"""
     try:
+        checks = 0
+        checks_correct = 0
+
         result_sum = _get_attribut_from_notebook('result_sum')
         if result_sum == 42 + 17:
             print(f"✅ Die Variable 'result_sum' hat den korrekten Wert: {result_sum}")
+            checks_correct += 1
         else:
             print(f"❌ Die Variable 'result_sum' hat den falschen Wert: {result_sum}. Erwartet wurde: {42 + 17}")
+        checks += 1
 
         quotient_float = _get_attribut_from_notebook('quotient_float')
         if quotient_float == 100 / 7:
             print(f"✅ Die Variable 'quotient_float' hat den korrekten Wert: {quotient_float}")
+            checks_correct += 1
         else:
             print(f"❌ Die Variable 'quotient_float' hat den falschen Wert: {quotient_float}. Erwartet wurde: {100 / 7}")
+        checks += 1
 
         quotient_int = _get_attribut_from_notebook('quotient_int')
         if quotient_int == 100 // 7:
             print(f"✅ Die Variable 'quotient_int' hat den korrekten Wert: {quotient_int}")
+            checks_correct += 1
         else:
             print(f"❌ Die Variable 'quotient_int' hat den falschen Wert: {quotient_int}. Erwartet wurde: {100 // 7}")
+        checks += 1
 
         remainder = _get_attribut_from_notebook('remainder')
         if remainder == 100 % 7:
             print(f"✅ Die Variable 'remainder' hat den korrekten Wert: {remainder}")
+            checks_correct += 1
         else:
             print(f"❌ Die Variable 'remainder' hat den falschen Wert: {remainder}. Erwartet wurde: {100 % 7}")
+        checks += 1
 
         power = _get_attribut_from_notebook('power')
         if power == 2 ** 10:
             print(f"✅ Die Variable 'power' hat den korrekten Wert: {power}")
+            checks_correct += 1
         else:
             print(f"❌ Die Variable 'power' hat den falschen Wert: {power}. Erwartet wurde: {2 ** 10}")
+        checks += 1
+        validation_results['task_2_1'] = (checks_correct, checks)
     except Exception as e:
         print(f"❌ Fehler: {e}")
 
 def task_2_2():
+    """Comparisons and Logical Operators"""
     try:
+        checks = 0
+        checks_correct = 0
+
         a = _get_attribut_from_notebook('a')
         if a == 15:
             print(f"✅ Die Variable 'a' hat den korrekten Wert: {a}")
+            checks_correct += 1
         else:
             print(f"❌ Die Variable 'a' hat den falschen Wert: {a}. Erwartet wurde: 15")
+        checks += 1
 
         b = _get_attribut_from_notebook('b')
         if b == 10:
             print(f"✅ Die Variable 'b' hat den korrekten Wert: {b}")
+            checks_correct += 1
         else:
             print(f"❌ Die Variable 'b' hat den falschen Wert: {b}. Erwartet wurde: 10")
+        checks += 1
 
         c = _get_attribut_from_notebook('c')
         if c == 20:
             print(f"✅ Die Variable 'c' hat den korrekten Wert: {c}")
+            checks_correct += 1
         else:
             print(f"❌ Die Variable 'c' hat den falschen Wert: {c}. Erwartet wurde: 20")
+        checks += 1
 
         d = _get_attribut_from_notebook('d')
         if d == 5:
             print(f"✅ Die Variable 'd' hat den korrekten Wert: {d}")
+            checks_correct += 1
         else:
             print(f"❌ Die Variable 'd' hat den falschen Wert: {d}. Erwartet wurde: 5")
+        checks += 1
 
         check1 = _get_attribut_from_notebook('check1')
         if check1 == (a > b) and (a < c):
             print(f"✅ Die Variable 'check1' hat den korrekten Wert: {check1}")
+            checks_correct += 1
         else:
             print(f"❌ Die Variable 'check1' hat den falschen Wert: {check1}. Erwartet wurde: {(a > b) and (a < c)}")
+        checks += 1
+
         check2 = _get_attribut_from_notebook('check2')
         if check2 == (d >= b):
             print(f"✅ Die Variable 'check2' hat den korrekten Wert: {check2}")
+            checks_correct += 1
         else:
             print(f"❌ Die Variable 'check2' hat den falschen Wert: {check2}. Erwartet wurde: {d >= b}")
+        checks += 1
+        validation_results['task_2_2'] = (checks_correct, checks)
     except Exception as e:
         print(f"❌ Fehler: {e}")
 
 def task_3_1():
+    """Lists"""
     try:
         days = _get_attribut_from_notebook('days')
         if isinstance(days, list) and len(days) == 7 and ["Montag", "Dienstag", "Donnerstag", "Freitag", "Samstag", "Sonntag", "Feiertag"] == days:
@@ -147,6 +454,7 @@ def task_3_1():
         print(f"❌ Fehler: {e}")
 
 def task_3_2():
+    """List Slicing and Built-in Functions"""
     try:
         numbers_hat = _get_attribut_from_notebook('numbers')
         numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
@@ -193,6 +501,7 @@ def task_3_2():
         print(f"❌ Fehler: {e}")
 
 def task_4_1():
+    """Dictionaries"""
     try:
         student = _get_attribut_from_notebook('student')
         if (isinstance(student, dict)):
@@ -220,6 +529,7 @@ def task_4_1():
         print(f"❌ Fehler: {e}")
 
 def task_4_2():
+    """Dictionaries and Loops"""
     try:
         student = _get_attribut_from_notebook('student')
         dict_content = _get_attribut_from_notebook('dict_content')
@@ -235,6 +545,7 @@ def task_4_2():
         print(f"❌ Fehler: {e}")
 
 def task_5_1():
+    """Tuples"""
     def is_int_triple(obj):
         return (
             isinstance(obj, tuple) and 
@@ -254,6 +565,7 @@ def task_5_1():
         print(f"❌ Fehler: {e}")
 
 def task_5_2():
+    """Sets"""
     try:
         course_a_hat = _get_attribut_from_notebook("course_a")
         course_a = {"Anna", "Ben", "Clara", "David"}
@@ -294,6 +606,7 @@ def task_5_2():
         print(f"❌ Fehler: {e}")
 
 def task_6_1():
+    """Control Structures"""
     try:
         number = _get_attribut_from_notebook("number")
         result_hat = _get_attribut_from_notebook("result")
@@ -314,6 +627,7 @@ def task_6_1():
         print(f"❌ Fehler: {e}")
 
 def task_6_2():
+    """For-Loops"""
     try:
         results = [1, 2, 3, 4, 6, 7]
         results_hat = _get_attribut_from_notebook("results")
@@ -326,6 +640,7 @@ def task_6_2():
         print(f"❌ Fehler: {e}")
 
 def task_6_3():
+    """While-Loops"""
     try:
         number = _get_attribut_from_notebook("number")
         result_hat = _get_attribut_from_notebook("result")
@@ -345,6 +660,7 @@ def task_6_3():
         print(f"❌ Fehler: {e}")
 
 def task_7_1():
+    """Functions - Numeric"""
     try:
         area_function = _get_attribut_from_notebook('calculate_area')
         if not callable(area_function):
@@ -370,6 +686,7 @@ def task_7_1():
         print(f"❌ Fehler: {e}")
 
 def task_7_2():
+    """Functions - Boolean"""
     try:
         prime_function = _get_attribut_from_notebook('is_prime')
         if not callable(prime_function):
@@ -403,6 +720,7 @@ def task_7_2():
         print(f"❌ Fehler: {e}")
 
 def task_7_3():
+    """Functions - Variable Arguments"""
     try:
         sum_function = _get_attribut_from_notebook('calculate_sum')
         if not callable(sum_function):
@@ -422,6 +740,7 @@ def task_7_3():
         print(f"❌ Fehler: {e}")
 
 def task_8_1():
+    """List Comprehensions - Fundamental"""
     try:
         results_hat = _get_attribut_from_notebook("results")
         expected_results = [i**2 for i in range(1, 21)]
@@ -435,6 +754,7 @@ def task_8_1():
         print(f"❌ Fehler: {e}")
 
 def task_8_2():
+    """List Comprehensions - Conditional"""
     try:
         results_hat = _get_attribut_from_notebook("results")
         expected_results = [i for i in range(1, 51) if i % 3 == 0 and i % 5 == 0]
@@ -448,6 +768,7 @@ def task_8_2():
         print(f"❌ Fehler: {e}")
 
 def task_8_3():
+    """List Comprehensions - Conditioned Calculation"""
     try:
         results_hat = _get_attribut_from_notebook("results")
         words = _get_attribut_from_notebook("words")
@@ -462,6 +783,7 @@ def task_8_3():
         print(f"❌ Fehler: {e}")
 
 def task_9_1():
+    """Object Oriented Programming - Fundamentals"""
     import inspect
     try:
         class_BankAccount = _get_attribut_from_notebook('BankAccount')
@@ -546,6 +868,7 @@ def task_9_1():
         print(f"❌ Fehler: {e}")
 
 def task_9_2():
+    """Object Oriented Programming - Inheritance"""
     import inspect
     try:
         class_Car = _get_attribut_from_notebook('Car')
@@ -598,6 +921,7 @@ def task_9_2():
         print(f"❌ Fehler: {e}")
 
 def task_10_1():
+    """Error Handling - Exceptions"""
     try:
         divide_method = _get_attribut_from_notebook('divide')
 
@@ -634,6 +958,7 @@ def task_10_1():
         print(f"❌ Fehler: {e}")
 
 def task_10_2():
+    """Error Handling - Custom Exceptions"""
     try:
         class_SmallValueError = _get_attribut_from_notebook('SmallValueError')
         method_check_value = _get_attribut_from_notebook('check_value')
@@ -648,6 +973,7 @@ def task_10_2():
         print(f"❌ Fehler: {e}")
 
 def task_11_1():
+    """File Handling - Writing"""
     import os
     try:
         if not os.path.isfile('notizen.txt'):
@@ -666,6 +992,7 @@ def task_11_1():
         print(f"❌ Fehler: {e}")
 
 def task_11_2():
+    """File Handling - Reading"""
     import os
     try:
         results = _get_attribut_from_notebook('results')
@@ -679,6 +1006,7 @@ def task_11_2():
         print(f"❌ Fehler: {e}")
 
 def task_11_3():
+    """File Handling - JSON"""
     import os
     import json
     try:
@@ -706,6 +1034,7 @@ def task_11_3():
         print(f"❌ Fehler: {e}")
 
 def task_12_1():
+    """Modules - Random"""
     try:
         list1 = _get_attribut_from_notebook('list1')
         list2 = _get_attribut_from_notebook('list2')
@@ -732,6 +1061,7 @@ def task_12_1():
         print(f"❌ Fehler: {e}")
 
 def task_12_2():
+    """Modules - Datetime"""
     try:
         import datetime
         date_today_hat = _get_attribut_from_notebook('date_today')
@@ -760,6 +1090,7 @@ def task_12_2():
         print(f"❌ Fehler: {e}")
 
 def task_13_1():
+    """NumPy - Fundamentals"""
     try:
         import numpy as np
 
@@ -804,6 +1135,7 @@ def task_13_1():
         print(f"❌ Fehler: {e}")
 
 def task_13_2():
+    """NumPy - Matrix Operations"""
     try:
         import numpy as np
 
@@ -836,6 +1168,7 @@ def task_13_2():
         print(f"❌ Fehler: {e}")
 
 def task_13_3():
+    """NumPy - Statistical Analysis"""
     try:
         import numpy as np
 
@@ -863,6 +1196,7 @@ def task_13_3():
         print(f"❌ Fehler: {e}")
 
 def task_14_1():
+    """PyTorch - Tensor Operations"""
     try:
         import torch
 
@@ -893,6 +1227,7 @@ def task_14_1():
         print(f"❌ Fehler: {e}")
 
 def task_14_2():
+    """PyTorch - Autograd"""
     try:
         import torch
 
@@ -912,6 +1247,7 @@ def task_14_2():
         print(f"❌ Fehler: {e}")
 
 def task_14_3():
+    """PyTorch - Neural Networks"""
     try:
         import torch
 
@@ -947,3 +1283,8 @@ def task_14_3():
 
     except Exception as e:
         print(f"❌ Fehler: {e}")
+    finally:
+        __generate_certificate__()
+
+if __name__ == "__main__":
+    __generate_certificate__()
