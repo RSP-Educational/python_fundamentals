@@ -481,6 +481,11 @@ def task_9_1():
         else:
             print(f"✅ Attribut 'balance' vorhanden. Wert: {bankAccount.balance}")
 
+            if bankAccount.balance != 0.0:
+                print(f"❌ Das Attribut 'balance' hat nicht den Startwert 0.0, sondern: {bankAccount.balance}")
+            else:
+                print(f"✅ Das Attribut 'balance' hat den korrekten Startwert 0.0.")
+
         if not hasattr(bankAccount, 'deposit'):
             print(f"❌ Die Klasse 'BankAccount' hat keine Methode 'deposit'.")
         else:
@@ -496,32 +501,43 @@ def task_9_1():
         else:
             print(f"✅ Methode 'get_balance' vorhanden.")
 
-        amount1 = 15.45
-        bankAccount.deposit(amount1)
-        if bankAccount.balance != amount1:
-            print(f"❌ Die Methode 'deposit' hat den Kontostand nicht korrekt erhöht. Erwartet: {amount1}, Tatsächlich: {bankAccount.balance}")
+        amount1 = -10.
+        bankAccount.balance = 0.0  # Reset balance before test
+        result = bankAccount.deposit(amount1)
+        if result != False:
+            print(f"❌ Die Methode 'deposit' hat negative Beträge zugelassen. Rückgabewert war: {result}, Erwartet: False")
         else:
-            print(f"✅ Die Methode 'deposit({amount1})' hat den Kontostand korrekt erhöht: {bankAccount.balance}")
+            print(f"✅ Die Methode 'deposit' hat negative Beträge korrekt abgelehnt.")
 
-        amount2 = 14.
-        bankAccount.withdraw(amount2)
-        if bankAccount.balance != amount1-amount2:
-            print(f"❌ Die Methode 'withdraw' hat den Kontostand nicht korrekt veringert. Erwartet: {amount1-amount2}, Tatsächlich: {bankAccount.balance}")
+        amount2 = 15.45
+        bankAccount.balance = 0.0  # Reset balance before test
+        bankAccount.deposit(amount2)
+        if bankAccount.balance != amount2:
+            print(f"❌ Die Methode 'deposit' hat den Kontostand nicht korrekt erhöht. Erwartet: {amount2}, Tatsächlich: {bankAccount.balance}")
         else:
-            print(f"✅ Die Methode 'deposit({amount2})' hat den Kontostand korrekt veringer: {bankAccount.balance}")
+            print(f"✅ Die Methode 'deposit({amount2})' hat den Kontostand korrekt erhöht: {bankAccount.balance}")
 
-        amount3 = 4.0
+        amount3 = -10.
+        bankAccount.balance = 0.0  # Reset balance before test
         result = bankAccount.withdraw(amount3)
         if result != None:
-            print(f"❌ Die Methode 'withdraw' hat den Kontostand nicht korrekt überprüft. Der Rückgabewert war: {result}, Erwartet: None")
+            print(f"❌ Die Methode 'withdraw' hat negative Beträge zugelassen. Rückgabewert war: {result}, Erwartet: False")
         else:
-            print(f"✅ Die Kontostandsüberprüfung der Methode 'withdraw' war erfolgreich.")
+            print(f"✅ Die Methode 'withdraw' hat negative Beträge korrekt abgelehnt.")
+
+        bankAccount.balance = amount2  # Set balance before test
+        amount4 = 14.
+        bankAccount.withdraw(amount4)
+        if bankAccount.balance != amount2-amount4:
+            print(f"❌ Die Methode 'withdraw' hat den Kontostand nicht korrekt veringert. Erwartet: {amount2-amount4}, Tatsächlich: {bankAccount.balance}")
+        else:
+            print(f"✅ Die Methode 'deposit({amount4})' hat den Kontostand korrekt veringer: {bankAccount.balance}")
 
         balance = bankAccount.get_balance()
         if not isinstance(balance, float):
             print(f"❌ Die Methode 'get_balance' hat {balance} {type(balance)} zurückgegeben. Erwartet: float")
-        elif balance != amount1 - amount2:
-            print(f"❌ Die Methode 'get_balance' hat einen falschen Wert zurückgegeben: {balance}, Erwartet: {amount1-amount2}")
+        elif balance != amount2 - amount4:
+            print(f"❌ Die Methode 'get_balance' hat einen falschen Wert zurückgegeben: {balance}, Erwartet: {amount2-amount4}")
         else:
             print(f"✅ Die Methode 'get_balance' hat den korrekten Wert zurückgegeben.")
 
